@@ -28,7 +28,7 @@ import BasicTypes
 import Inst
 import TcBinds          ( chooseInferredQuantifiers, tcLocalBinds
                         , tcUserTypeSig, tcExtendTyVarEnvFromSig )
-import TcSimplify       ( simplifyInfer )
+import TcSimplify       ( simplifyInfer, InferMode(..) )
 import FamInst          ( tcGetFamInstEnvs, tcLookupDataFamInst )
 import FamInstEnv       ( FamInstEnvs )
 import RnEnv            ( addUsedGRE, addNameClashErrRn
@@ -1467,7 +1467,7 @@ tcExprSig expr sig@(TISI { sig_bndr  = s_bndr
                      emitWildCardHoleConstraints wc_prs
                    ; tcPolyExprNC expr tau }
        ; (qtvs, givens, ev_binds)
-                 <- simplifyInfer tclvl False [sig] [(name, tau)] wanted
+                 <- simplifyInfer tclvl NoRestrictions [sig] [(name, tau)] wanted
        ; tau <- zonkTcType tau
        ; let inferred_theta = map evVarPred givens
              tau_tvs        = tyCoVarsOfType tau
