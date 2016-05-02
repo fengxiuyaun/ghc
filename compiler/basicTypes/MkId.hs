@@ -383,7 +383,7 @@ mkDataConWorkId wkr_name data_con
                 `setUnfoldingInfo`   evaldUnfolding  -- Record that it's evaluated,
                                                      -- even if arity = 0
 
-    wkr_sig = mkClosedStrictSig (replicate wkr_arity topDmd) (dataConCPR data_con)
+    wkr_sig = mkClosedStrictSig (replicate wkr_arity boringTopDmd) (dataConCPR data_con)
         --      Note [Data-con worker strictness]
         -- Notice that we do *not* say the worker is strict
         -- even if the data constructor is declared strict
@@ -495,7 +495,7 @@ mkDataConRep dflags fam_envs wrap_name mb_bangs data_con
              wrap_sig = mkClosedStrictSig wrap_arg_dmds (dataConCPR data_con)
              wrap_arg_dmds = map mk_dmd arg_ibangs
              mk_dmd str | isBanged str = evalDmd
-                        | otherwise           = topDmd
+                        | otherwise           = boringTopDmd
                  -- The Cpr info can be important inside INLINE rhss, where the
                  -- wrapper constructor isn't inlined.
                  -- And the argument strictness can be important too; we
@@ -974,7 +974,7 @@ mkFCallId dflags uniq fcall ty
     (bndrs, _)        = tcSplitPiTys ty
     arity             = count isIdLikeBinder bndrs
 
-    strict_sig      = mkClosedStrictSig (replicate arity topDmd) topRes
+    strict_sig      = mkClosedStrictSig (replicate arity boringTopDmd) topRes
     -- the call does not claim to be strict in its arguments, since they
     -- may be lifted (foreign import prim) and the called code doesn't
     -- necessarily force them. See Trac #11076.

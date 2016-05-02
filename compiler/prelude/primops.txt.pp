@@ -61,7 +61,7 @@ defaults
    can_fail         = False   -- See Note Note [PrimOp can_fail and has_side_effects] in PrimOp
    commutable       = False
    code_size        = { primOpCodeSizeDefault }
-   strictness       = { \ arity -> mkClosedStrictSig (replicate arity topDmd) topRes }
+   strictness       = { \ arity -> mkClosedStrictSig (replicate arity boringTopDmd) topRes }
    fixity           = Nothing
    llvm_only        = False
    vector           = []
@@ -1952,7 +1952,7 @@ primop  CatchOp "catch#" GenPrimOp
    with
    strictness  = { \ _arity -> mkClosedStrictSig [ catchArgDmd
                                                  , lazyApply2Dmd
-                                                 , topDmd] topRes }
+                                                 , boringTopDmd] topRes }
                  -- See Note [Strictness for mask/unmask/catch]
    out_of_line = True
    has_side_effects = True
@@ -1961,7 +1961,7 @@ primop  RaiseOp "raise#" GenPrimOp
    b -> o
       -- NB: the type variable "o" is "a", but with OpenKind
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [topDmd] exnRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [boringTopDmd] exnRes }
       -- NB: result is ThrowsExn
    out_of_line = True
    has_side_effects = True
@@ -1983,7 +1983,7 @@ primop  RaiseOp "raise#" GenPrimOp
 primop  RaiseIOOp "raiseIO#" GenPrimOp
    a -> State# RealWorld -> (# State# RealWorld, b #)
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [topDmd, topDmd] exnRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [boringTopDmd, boringTopDmd] exnRes }
    out_of_line = True
    has_side_effects = True
 
@@ -1991,7 +1991,7 @@ primop  MaskAsyncExceptionsOp "maskAsyncExceptions#" GenPrimOp
         (State# RealWorld -> (# State# RealWorld, a #))
      -> (State# RealWorld -> (# State# RealWorld, a #))
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,boringTopDmd] topRes }
                  -- See Note [Strictness for mask/unmask/catch]
    out_of_line = True
    has_side_effects = True
@@ -2000,7 +2000,7 @@ primop  MaskUninterruptibleOp "maskUninterruptible#" GenPrimOp
         (State# RealWorld -> (# State# RealWorld, a #))
      -> (State# RealWorld -> (# State# RealWorld, a #))
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,boringTopDmd] topRes }
    out_of_line = True
    has_side_effects = True
 
@@ -2008,7 +2008,7 @@ primop  UnmaskAsyncExceptionsOp "unmaskAsyncExceptions#" GenPrimOp
         (State# RealWorld -> (# State# RealWorld, a #))
      -> (State# RealWorld -> (# State# RealWorld, a #))
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,boringTopDmd] topRes }
                  -- See Note [Strictness for mask/unmask/catch]
    out_of_line = True
    has_side_effects = True
@@ -2029,7 +2029,7 @@ primop  AtomicallyOp "atomically#" GenPrimOp
       (State# RealWorld -> (# State# RealWorld, a #) )
    -> State# RealWorld -> (# State# RealWorld, a #)
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [strictApply1Dmd,boringTopDmd] topRes }
                  -- See Note [Strictness for mask/unmask/catch]
    out_of_line = True
    has_side_effects = True
@@ -2047,7 +2047,7 @@ primop  AtomicallyOp "atomically#" GenPrimOp
 primop  RetryOp "retry#" GenPrimOp
    State# RealWorld -> (# State# RealWorld, a #)
    with
-   strictness  = { \ _arity -> mkClosedStrictSig [topDmd] botRes }
+   strictness  = { \ _arity -> mkClosedStrictSig [boringTopDmd] botRes }
    out_of_line = True
    has_side_effects = True
 
@@ -2058,7 +2058,7 @@ primop  CatchRetryOp "catchRetry#" GenPrimOp
    with
    strictness  = { \ _arity -> mkClosedStrictSig [ catchArgDmd
                                                  , lazyApply1Dmd
-                                                 , topDmd ] topRes }
+                                                 , boringTopDmd ] topRes }
                  -- See Note [Strictness for mask/unmask/catch]
    out_of_line = True
    has_side_effects = True
@@ -2070,7 +2070,7 @@ primop  CatchSTMOp "catchSTM#" GenPrimOp
    with
    strictness  = { \ _arity -> mkClosedStrictSig [ catchArgDmd
                                                  , lazyApply2Dmd
-                                                 , topDmd ] topRes }
+                                                 , boringTopDmd ] topRes }
                  -- See Note [Strictness for mask/unmask/catch]
    out_of_line = True
    has_side_effects = True
@@ -2934,7 +2934,7 @@ primop PrefetchAddrOp3 "prefetchAddr3#" GenPrimOp
 
 primop PrefetchValueOp3 "prefetchValue3#" GenPrimOp
    a -> State# s -> State# s
-   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes }
+   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, boringTopDmd] topRes }
         has_side_effects =  True
 ----
 
@@ -2952,7 +2952,7 @@ primop PrefetchAddrOp2 "prefetchAddr2#" GenPrimOp
 
 primop PrefetchValueOp2 "prefetchValue2#" GenPrimOp
    a ->  State# s -> State# s
-   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes }
+   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, boringTopDmd] topRes }
         has_side_effects =  True
 ----
 
@@ -2970,7 +2970,7 @@ primop PrefetchAddrOp1 "prefetchAddr1#" GenPrimOp
 
 primop PrefetchValueOp1 "prefetchValue1#" GenPrimOp
    a -> State# s -> State# s
-   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes }
+   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, boringTopDmd] topRes }
         has_side_effects =  True
 ----
 
@@ -2988,7 +2988,7 @@ primop PrefetchAddrOp0 "prefetchAddr0#" GenPrimOp
 
 primop PrefetchValueOp0 "prefetchValue0#" GenPrimOp
    a -> State# s -> State# s
-   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes }
+   with strictness  = { \ _arity -> mkClosedStrictSig [botDmd, boringTopDmd] topRes }
         has_side_effects =  True
 
 ------------------------------------------------------------------------
