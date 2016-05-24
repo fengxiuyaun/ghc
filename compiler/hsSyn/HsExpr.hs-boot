@@ -10,7 +10,7 @@ module HsExpr where
 import SrcLoc     ( Located )
 import Outputable ( SDoc, OutputableBndr, Outputable )
 import {-# SOURCE #-} HsPat  ( LPat )
-import PlaceHolder ( DataId )
+import PlaceHolder ( DataId, NameOrRdrName )
 import Data.Data hiding ( Fixity )
 
 type role HsExpr nominal
@@ -33,21 +33,28 @@ instance (Data body,DataId id) => Data (MatchGroup id body)
 instance (Data body,DataId id) => Data (GRHSs id body)
 instance (DataId id) => Data (SyntaxExpr id)
 
-instance OutputableBndr id => Outputable (HsExpr id)
-instance OutputableBndr id => Outputable (HsCmd id)
+instance (OutputableBndr id, OutputableBndr (NameOrRdrName id))
+         => Outputable (HsExpr id)
+instance (OutputableBndr id, OutputableBndr (NameOrRdrName id))
+         => Outputable (HsCmd id)
 
 type LHsExpr a = Located (HsExpr a)
 
-pprLExpr :: (OutputableBndr i) =>
-        LHsExpr i -> SDoc
+pprLExpr :: (OutputableBndr id,OutputableBndr (NameOrRdrName id))
+         => LHsExpr id -> SDoc
 
-pprExpr :: (OutputableBndr i) =>
-        HsExpr i -> SDoc
+pprExpr :: (OutputableBndr id, OutputableBndr (NameOrRdrName id))
+        => HsExpr id -> SDoc
 
-pprSplice :: (OutputableBndr i) => HsSplice i -> SDoc
+pprSplice :: (OutputableBndr id, OutputableBndr (NameOrRdrName id))
+          => HsSplice id -> SDoc
 
-pprPatBind :: (OutputableBndr bndr, OutputableBndr id, Outputable body)
+pprPatBind :: (OutputableBndr bndr,
+               OutputableBndr (NameOrRdrName bndr),
+               OutputableBndr id, Outputable body,
+               OutputableBndr (NameOrRdrName id))
            => LPat bndr -> GRHSs id body -> SDoc
 
-pprFunBind :: (OutputableBndr idL, OutputableBndr idR, Outputable body)
-           => idL -> MatchGroup idR body -> SDoc
+pprFunBind :: (OutputableBndr idR, Outputable body,
+              OutputableBndr (NameOrRdrName idR))
+           => MatchGroup idR body -> SDoc

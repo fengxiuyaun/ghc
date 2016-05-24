@@ -366,7 +366,8 @@ hsRecUpdFieldOcc = fmap unambiguousFieldOcc . hsRecFieldLbl
 ************************************************************************
 -}
 
-instance (OutputableBndr name) => Outputable (Pat name) where
+instance (OutputableBndr name, OutputableBndr (NameOrRdrName name))
+        => Outputable (Pat name) where
     ppr = pprPat
 
 pprPatBndr :: OutputableBndr name => name -> SDoc
@@ -378,10 +379,13 @@ pprPatBndr var                  -- Print with type info if -dppr-debug is on
     else
         pprPrefixOcc var
 
-pprParendLPat :: (OutputableBndr name) => LPat name -> SDoc
+pprParendLPat :: (OutputableBndr name,
+                  OutputableBndr (NameOrRdrName name))
+              => LPat name -> SDoc
 pprParendLPat (L _ p) = pprParendPat p
 
-pprParendPat :: (OutputableBndr name) => Pat name -> SDoc
+pprParendPat :: (OutputableBndr name, OutputableBndr (NameOrRdrName name))
+             => Pat name -> SDoc
 pprParendPat p = sdocWithDynFlags $ \ dflags ->
                  if need_parens dflags p
                  then parens (pprPat p)
@@ -395,7 +399,8 @@ pprParendPat p = sdocWithDynFlags $ \ dflags ->
       -- But otherwise the CoPat is discarded, so it
       -- is the pattern inside that matters.  Sigh.
 
-pprPat :: (OutputableBndr name) => Pat name -> SDoc
+pprPat :: (OutputableBndr name, OutputableBndr (NameOrRdrName name))
+       => Pat name -> SDoc
 pprPat (VarPat (L _ var))     = pprPatBndr var
 pprPat (WildPat _)            = char '_'
 pprPat (LazyPat pat)          = char '~' <> pprParendLPat pat
@@ -431,11 +436,14 @@ pprPat (ConPatOut { pat_con = con, pat_tvs = tvs, pat_dicts = dicts,
     else pprUserCon (unLoc con) details
 
 
-pprUserCon :: (OutputableBndr con, OutputableBndr id) => con -> HsConPatDetails id -> SDoc
+pprUserCon :: (OutputableBndr con, OutputableBndr id,
+               OutputableBndr (NameOrRdrName id))
+           => con -> HsConPatDetails id -> SDoc
 pprUserCon c (InfixCon p1 p2) = ppr p1 <+> pprInfixOcc c <+> ppr p2
 pprUserCon c details          = pprPrefixOcc c <+> pprConArgs details
 
-pprConArgs ::  OutputableBndr id => HsConPatDetails id -> SDoc
+pprConArgs :: (OutputableBndr id, OutputableBndr (NameOrRdrName id))
+           => HsConPatDetails id -> SDoc
 pprConArgs (PrefixCon pats) = sep (map pprParendLPat pats)
 pprConArgs (InfixCon p1 p2) = sep [pprParendLPat p1, pprParendLPat p2]
 pprConArgs (RecCon rpats)   = ppr rpats
@@ -547,7 +555,8 @@ looksLazyLPat (L _ (VarPat {}))            = False
 looksLazyLPat (L _ (WildPat {}))           = False
 looksLazyLPat _                            = True
 
-isIrrefutableHsPat :: OutputableBndr id => LPat id -> Bool
+isIrrefutableHsPat :: (OutputableBndr id, OutputableBndr (NameOrRdrName id))
+                   => LPat id -> Bool
 -- (isIrrefutableHsPat p) is true if matching against p cannot fail,
 -- in the sense of falling through to the next pattern.
 --      (NB: this is not quite the same as the (silly) defn

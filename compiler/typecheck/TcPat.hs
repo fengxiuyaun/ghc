@@ -7,6 +7,7 @@ TcPat: Typechecking patterns
 -}
 
 {-# LANGUAGE CPP, RankNTypes, TupleSections #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module TcPat ( tcLetPat
              , TcPragEnv, lookupPragEnv, emptyPragEnv
@@ -1235,7 +1236,8 @@ polyPatSig sig_ty
   = hang (text "Illegal polymorphic type signature in pattern:")
        2 (ppr sig_ty)
 
-lazyUnliftedPatErr :: OutputableBndr name => Pat name -> TcM ()
+lazyUnliftedPatErr :: (OutputableBndr name, OutputableBndr (NameOrRdrName name))
+                   => Pat name -> TcM ()
 lazyUnliftedPatErr pat
   = failWithTc $
     hang (text "A lazy (~) pattern cannot contain unlifted types:")

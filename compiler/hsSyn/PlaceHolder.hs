@@ -99,6 +99,14 @@ In terms of actual usage, we have the following
 TcId and Var are synonyms for Id
 -}
 
+-- AZ:TODO:Move back to HsExpr.hs
+-- |Follow the id, but never beyond Name. Closed family to simplify Data
+-- instances
+type family NameOrRdrName id where
+  NameOrRdrName Id      = Name
+  NameOrRdrName Name    = Name
+  NameOrRdrName RdrName = RdrName
+
 type DataId id =
   ( Data id
   , Data (PostRn id NameSet)
@@ -117,4 +125,6 @@ type DataId id =
   , Data (PostTc id [ConLike])
   , Data (PostTc id HsWrapper)
   , Data (PostTc id [FieldLabel])
+
+  , Data (NameOrRdrName id)
   )

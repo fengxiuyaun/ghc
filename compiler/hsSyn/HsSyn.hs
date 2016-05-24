@@ -108,7 +108,8 @@ data HsModule name
       deriving (Typeable)
 deriving instance (DataId name) => Data (HsModule name)
 
-instance (OutputableBndr name, HasOccName name)
+instance (OutputableBndr name, OutputableBndr (NameOrRdrName name),
+          HasOccName name)
         => Outputable (HsModule name) where
 
     ppr (HsModule Nothing _ imports decls _ mbDoc)
