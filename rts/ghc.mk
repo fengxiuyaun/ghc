@@ -96,7 +96,7 @@ rts/dist/libs.depend : $$(ghc-pkg_INPLACE) | $$(dir $$@)/.
 # 	These are made from rts/win32/libHS*.def which contain lists of
 # 	all the symbols in those libraries used by the RTS.
 #
-ifeq "$(HostOS_CPP)" "mingw32" 
+ifeq "$(HostOS_CPP)" "mingw32"
 
 ALL_RTS_DEF_LIBNAMES 	= base ghc-prim
 ALL_RTS_DEF_LIBS	= \
@@ -120,7 +120,7 @@ endif
 
 ifneq "$(BINDIST)" "YES"
 ifneq "$(UseSystemLibFFI)" "YES"
-ifeq "$(HostOS_CPP)" "mingw32" 
+ifeq "$(HostOS_CPP)" "mingw32"
 rts/dist/build/$(LIBFFI_DLL): libffi/build/inst/bin/$(LIBFFI_DLL)
 	cp $< $@
 else
@@ -151,7 +151,7 @@ rts_dist_$1_CC_OPTS += -fno-omit-frame-pointer -g -O0
 endif
 
 ifneq "$$(findstring dyn, $1)" ""
-ifeq "$$(HostOS_CPP)" "mingw32" 
+ifeq "$$(HostOS_CPP)" "mingw32"
 rts_dist_$1_CC_OPTS += -DCOMPILING_WINDOWS_DLL
 endif
 rts_dist_$1_CC_OPTS += -DDYNAMIC
@@ -204,7 +204,7 @@ endif
 
 # Making a shared library for the RTS.
 ifneq "$$(findstring dyn, $1)" ""
-ifeq "$$(HostOS_CPP)" "mingw32" 
+ifeq "$$(HostOS_CPP)" "mingw32"
 $$(rts_$1_LIB) : $$(rts_$1_OBJS) $$(ALL_RTS_DEF_LIBS) rts/dist/libs.depend rts/dist/build/$$(LIBFFI_DLL)
 	"$$(RM)" $$(RM_OPTS) $$@
 	"$$(rts_dist_HC)" -this-unit-id rts -shared -dynamic -dynload deploy \
@@ -266,15 +266,15 @@ WARNING_OPTS += -W
 else
 WARNING_OPTS += -Wextra
 endif
-WARNING_OPTS += -Wstrict-prototypes 
-WARNING_OPTS += -Wmissing-prototypes 
+WARNING_OPTS += -Wstrict-prototypes
+WARNING_OPTS += -Wmissing-prototypes
 WARNING_OPTS += -Wmissing-declarations
 WARNING_OPTS += -Winline
 WARNING_OPTS += -Waggregate-return
 WARNING_OPTS += -Wpointer-arith
 WARNING_OPTS += -Wmissing-noreturn
 WARNING_OPTS += -Wnested-externs
-WARNING_OPTS += -Wredundant-decls 
+WARNING_OPTS += -Wredundant-decls
 
 # These ones are hard to avoid:
 #WARNING_OPTS += -Wconversion
@@ -282,7 +282,7 @@ WARNING_OPTS += -Wredundant-decls
 #WARNING_OPTS += -Wshadow
 #WARNING_OPTS += -Wcast-qual
 
-# This one seems buggy on GCC 4.1.2, which is the only GCC version we 
+# This one seems buggy on GCC 4.1.2, which is the only GCC version we
 # have that can bootstrap the SPARC build. We end up with lots of supurious
 # warnings of the form "cast increases required alignment of target type".
 # Some legitimate warnings can be fixed by adding an intermediate cast to
@@ -314,7 +314,7 @@ rts_CC_OPTS += -DUSE_LIBFFI_FOR_ADJUSTORS
 endif
 
 # We *want* type-checking of hand-written cmm.
-rts_HC_OPTS += -dcmm-lint 
+rts_HC_OPTS += -dcmm-lint
 
 # -fno-strict-aliasing is required for the runtime, because we often
 # use a variety of types to represent closure pointers (StgPtr,
@@ -478,14 +478,6 @@ rts_PACKAGE_CPP_OPTS += -DFFI_INCLUDE_DIR=
 rts_PACKAGE_CPP_OPTS += -DFFI_LIB_DIR=
 rts_PACKAGE_CPP_OPTS += '-DFFI_LIB="C$(LIBFFI_NAME)"'
 
-endif
-
-#-----------------------------------------------------------------------------
-# Add support for reading DWARF debugging information, if available
-
-ifeq "$(GhcRtsWithLibdw)" "YES"
-rts_CC_OPTS          += -DUSE_LIBDW
-rts_PACKAGE_CPP_OPTS += -DUSE_LIBDW
 endif
 
 # -----------------------------------------------------------------------------
