@@ -772,54 +772,28 @@ decideQuantification
          , [PredType] )    -- and this context (fully zonked)
 -- See Note [Deciding quantification]
 decideQuantification infer_mode name_taus psig_theta constraints
-  | ApplyMR <- infer_mode     -- Apply the Monomorphism restriction
-  = do { gbl_tvs <- tcGetGlobalTyCoVars
-       ; zonked_taus <- mapM TcM.zonkTcType (psig_theta ++ taus)
-                        -- psig_theta: see Note [Quantification and partial signatures]
-       ; let zonked_dvs      = splitDepVarsOfTypes zonked_taus
-             zonked_tkvs     = tcDepVarSet zonked_dvs
-             constrained_tvs = tyCoVarsOfTypes constraints `unionVarSet`
-                               filterVarSet isCoVar zonked_tkvs
-             mono_tvs = gbl_tvs `unionVarSet` constrained_tvs
-
-       ; qtvs <- quantifyZonkedTyVars mono_tvs zonked_dvs
-
-           -- Warn about the monomorphism restriction
-       ; warn_mono <- woptM Opt_WarnMonomorphism
-       ; let mr_bites = constrained_tvs `intersectsVarSet` zonked_tkvs
-       ; warnTc (Reason Opt_WarnMonomorphism) (warn_mono && mr_bites) $
-         hang (text "The Monomorphism Restriction applies to the binding"
-               <> plural bndrs <+> text "for" <+> pp_bndrs)
-             2 (text "Consider giving a type signature for"
-                <+> if isSingleton bndrs then pp_bndrs
-                                         else text "these binders")
-
-       -- All done
-       ; traceTc "decideQuantification 1" (vcat [ppr constraints, ppr gbl_tvs, ppr mono_tvs
-                                                , ppr qtvs, ppr mr_bites])
-       ; return (qtvs, []) }
-
-  | otherwise
   = do { gbl_tvs     <- tcGetGlobalTyCoVars
        ; zonked_taus <- mapM TcM.zonkTcType (psig_theta ++ taus)
                         -- psig_theta: see Note [Quantification and partial signatures]
        ; ovl_strings <- xoptM LangExt.OverloadedStrings
-       ; let interactive_constraints = filter is_interactive_ct constraints
-             is_interactive_ct ct
+       ; let is_interactive_ct ct
                | Just (cls, _) <- getClassPredTys_maybe ct
                = isInteractiveClass ovl_strings cls
                | otherwise
                = False
 
-             defaultable  = case infer_mode of
-                              EagerDefaulting -> interactive_constraints
-                              _               -> []
-             default_tvs  = tyCoVarsOfTypes defaultable
+             (mono_constraints, maybe_quant_constraints)
+               = case infer_mode of
+                 ApplyMR         -> (constraints, [])
+                 EagerDefaulting -> partition is_interactive_ct constraints
+                 NoRestrictions  -> ([], constraints)
 
-             DV { dv_kvs = zkvs, dv_tvs = ztvs} = splitDepVarsOfTypes zonked_taus
-             mono_tvs     = growThetaTyVars equality_constraints $
-                            gbl_tvs `unionVarSet` default_tvs
-             tau_tvs_plus = growThetaTyVarsDSet constraints ztvs
+             constrained_tvs  = tyCoVarsOfTypes mono_constraints
+             mono_tvs         = growThetaTyVars equality_constraints $
+                                gbl_tvs `unionVarSet` constrained_tvs
+
+             DV {dv_kvs = zkvs, dv_tvs = ztvs} = splitDepVarsOfTypes zonked_taus
+             tau_tvs_plus = growThetaTyVarsDSet maybe_quant_constraints ztvs
              dvs_plus     = DV { dv_kvs = zkvs, dv_tvs = tau_tvs_plus }
        ; qtvs <- quantifyZonkedTyVars mono_tvs dvs_plus
           -- We don't grow the kvs, as there's no real need to. Recall
@@ -827,23 +801,40 @@ decideQuantification infer_mode name_taus psig_theta constraints
           -- only for defaulting, and we don't want (ever) to default a tv
           -- to *. So, don't grow the kvs.
 
-       ; constraints <- TcM.zonkTcTypes constraints
+           -- Warn about the monomorphism restriction
+       ; warn_mono <- woptM Opt_WarnMonomorphism
+       ; let mr_bites | ApplyMR <- infer_mode
+                      = constrained_tvs `intersectsVarSet` tcDepVarSet dvs_plus
+                      | otherwise
+                      = False
+       ; warnTc (Reason Opt_WarnMonomorphism) (warn_mono && mr_bites) $
+         hang (text "The Monomorphism Restriction applies to the binding"
+               <> plural bndrs <+> text "for" <+> pp_bndrs)
+             2 (text "Consider giving a type signature for"
+                <+> if isSingleton bndrs then pp_bndrs
+                                         else text "these binders")
+
+       ; maybe_quant_constraints <- TcM.zonkTcTypes maybe_quant_constraints
                  -- quantifyTyVars turned some meta tyvars into
                  -- quantified skolems, so we have to zonk again
 
        ; let qtv_set   = mkVarSet qtvs
-             theta     = pickQuantifiablePreds qtv_set constraints
+             theta     = pickQuantifiablePreds qtv_set maybe_quant_constraints
              min_theta = mkMinimalBySCs theta
                -- See Note [Minimize by Superclasses]
 
        ; traceTc "decideQuantification 2"
-           (vcat [ text "infer_mode:"   <+> ppr infer_mode
-                 , text "constraints:"  <+> ppr constraints
-                 , text "gbl_tvs:"      <+> ppr gbl_tvs
-                 , text "mono_tvs:"     <+> ppr mono_tvs
-                 , text "tau_tvs_plus:" <+> ppr tau_tvs_plus
-                 , text "qtvs:"         <+> ppr qtvs
-                 , text "min_theta:"    <+> ppr min_theta ])
+           (vcat [ text "infer_mode:"              <+> ppr infer_mode
+                 , text "constraints:"             <+> ppr constraints
+                 , text "mono_contraints:"         <+> ppr mono_constraints
+                 , text "maybe_quant_constraints:" <+> ppr maybe_quant_constraints
+                 , text "gbl_tvs:"                 <+> ppr gbl_tvs
+                 , text "mono_tvs:"                <+> ppr mono_tvs
+                 , text "zkvs:"                    <+> ppr zkvs
+                 , text "tau_tvs_plus:"            <+> ppr tau_tvs_plus
+                 , text "mr_bites:"                <+> ppr mr_bites
+                 , text "qtvs:"                    <+> ppr qtvs
+                 , text "min_theta:"               <+> ppr min_theta ])
        ; return (qtvs, min_theta) }
   where
     pp_bndrs = pprWithCommas (quotes . ppr) bndrs
